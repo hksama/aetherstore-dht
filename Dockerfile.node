@@ -1,0 +1,17 @@
+# Stage 1: Build
+FROM rust:1.75-alphine as builder
+RUN apk add --no-cache musl-dev protoc # protoc is needed for libp2p
+WORKDIR /usr/src/aetherstore
+COPY . .
+RUN cargo build --release
+
+# Stage 2: Runtime
+FROM alpine:latest
+RUN apk add --no-cache libgcc
+COPY --from=builder /usr/src/aetherstore/target/release/aetherstore-node /usr/local/bin/aetherstore-node
+
+# Create a data directory
+RUN mkdir -p /data
+VOLUME /data
+
+ENTRYPOINT ["aetherstore-node"]

@@ -1,0 +1,15 @@
+[package]
+name = "reed-solomon-dht"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = "4.5.60"
+libp2p = { version = "0.56", features = ["noise", "yamux", "request-response", "tokio", "macros", "ping","quic","cbor"] }
+reed-solomon-simd = "3.1.0"
+serde = { version = "1.0.228", features = ["derive"] }
+tokio = { version = "1.50.0", features = ["full"] }
+tracing = "0.1.44"
+
+[dev-dependencies]
+tracing-subscriber = "0.3.22"
