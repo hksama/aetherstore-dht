@@ -110,5 +110,6 @@ tokio::spawn(async move {
 }
 fn heavy_compute(data: String) -> String {
     // placeholder for reed solomon
+    println!("Heavy computation will happen here!");
     format!("processed {}", data)
 }
