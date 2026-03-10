@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  node1:
+    image: aether-node
+    container_name: node1
+
+  node2:
+    image: aether-node
+    command: ["4001","PEER_ID"]

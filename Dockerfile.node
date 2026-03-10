@@ -1,16 +1,41 @@
+# -----------------------------
 # Stage 1: Build
-FROM rust:1.75-alphine as builder
-RUN apk add --no-cache musl-dev protoc # protoc is needed for libp2p
+# -----------------------------
+FROM rust:1.90-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    musl-dev \
+    gcc \
+    protoc
+
 WORKDIR /usr/src/aetherstore
+
+# Copy dependency files first (for Docker layer caching)
+COPY Cargo.toml Cargo.lock ./
+
+# Create dummy source to build dependencies
+RUN mkdir src && echo "fn main(){}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf src
+
+# Copy actual source
 COPY . .
+
+# Build final binary
 RUN cargo build --release
 
+# -----------------------------
 # Stage 2: Runtime
-FROM alpine:latest
-RUN apk add --no-cache libgcc
-COPY --from=builder /usr/src/aetherstore/target/release/aetherstore-node /usr/local/bin/aetherstore-node
+# -----------------------------
+FROM alpine:3.19
 
-# Create a data directory
+RUN apk add --no-cache libgcc
+
+# Copy binary from builder
+COPY --from=builder /usr/src/aetherstore/target/release/reed-solomon-dht /usr/local/bin/aetherstore-node
+
+# Create data directory
 RUN mkdir -p /data
 VOLUME /data
 
