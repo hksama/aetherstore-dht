@@ -10,7 +10,6 @@ codegen-units = 1
 panic = "abort"
 
 [dependencies]
-clap = "4.5.60"
 libp2p = { version = "0.56", features = ["noise", "yamux", "request-response", "tokio", "macros", "ping","quic","cbor","kad"] }
 reed-solomon-simd = "3.1.0"
 serde = { version = "1.0.228", features = ["derive"] }

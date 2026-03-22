@@ -1,19 +1,13 @@
+use libp2p::kad::{self, Behaviour as Kademlia, Event as KademliaEvent, store::MemoryStore};
 use libp2p::request_response;
+use libp2p::swarm::NetworkBehaviour;
 use libp2p::{Multiaddr, PeerId, SwarmBuilder, futures::StreamExt, swarm::SwarmEvent};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 use tokio::sync::mpsc::channel;
-use libp2p::kad::{
-    self,
-    store::MemoryStore,
-    Behaviour as Kademlia,
-    Event as KademliaEvent,
-};
-use libp2p::swarm::NetworkBehaviour;
 mod peerstore;
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct RequestBody(String);
@@ -44,17 +38,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
             let mut kad = Kademlia::new(peer_id, store);
 
             AetherNetworkBehaviour {
-                request_response: request_response::cbor::Behaviour::<RequestBody, ResponseBody>::new(
-                    [(libp2p::StreamProtocol::new("/aether/1.0.0"),
-                        request_response::ProtocolSupport::Full)],
-                    request_response::Config::default(),
-                ),
+                request_response:
+                    request_response::cbor::Behaviour::<RequestBody, ResponseBody>::new(
+                        [(
+                            libp2p::StreamProtocol::new("/aether/1.0.0"),
+                            request_response::ProtocolSupport::Full,
+                        )],
+                        request_response::Config::default(),
+                    ),
                 kademlia: kad,
             }
         })?
         .with_swarm_config(|cfg| cfg.with_idle_connection_timeout(Duration::from_secs(30)))
         .build();
-    
 
     println!("Local PeerId: {}", swarm.local_peer_id());
 
@@ -66,7 +62,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         {
             let port: u16 = port.parse()?;
         }
-        swarm.listen_on(format!("/ip4/127.0.0.1/udp/{}/quic-v1",port).parse()?)?;
+        swarm.listen_on(format!("/ip4/127.0.0.1/udp/{}/quic-v1", port).parse()?)?;
         let peer = std::env::args().nth(2).expect("Need peer id");
         let remote: Multiaddr =
             format!("/ip4/127.0.0.1/udp/{}/quic-v1/p2p/{}", port, peer).parse()?;
@@ -90,59 +86,59 @@ async fn main() -> Result<(), Box<dyn Error>> {
     loop {
         tokio::select! {
 
-            Some(cmd) = cmd_rx.recv() => {
-                match cmd {
-                    NodeCommand::SendRequest { peer, data } => {
-                        // swarm.behaviour_mut().send_request(&peer, data);
-                        swarm.behaviour_mut().request_response.send_request(&peer, data);
+                    Some(cmd) = cmd_rx.recv() => {
+                        match cmd {
+                            NodeCommand::SendRequest { peer, data } => {
+                                // swarm.behaviour_mut().send_request(&peer, data);
+                                swarm.behaviour_mut().request_response.send_request(&peer, data);
+                            }
+                        }
                     }
-                }
-            }
-            //libp2p events handling block
-            event = swarm.select_next_some() => {
-                match event {
-
-                    SwarmEvent::NewListenAddr { address, .. } => {
-                        println!("Listening on {address:?}");
-                    }
-
-                    SwarmEvent::Behaviour(event) => {
+                    //libp2p events handling block
+                    event = swarm.select_next_some() => {
                         match event {
 
-                            AetherNetworkBehaviourEvent::RequestResponse(event) => {
+                            SwarmEvent::NewListenAddr { address, .. } => {
+                                println!("Listening on {address:?}");
+                            }
+
+                            SwarmEvent::Behaviour(event) => {
                                 match event {
 
-                                    request_response::Event::Message { peer, message, .. } => {
-                                        match message {
+                                    AetherNetworkBehaviourEvent::RequestResponse(event) => {
+                                        match event {
 
-                                            request_response::Message::Request { request, channel, .. } => {
-                                                println!("Request from {} {:?}", peer, request);
+                                            request_response::Event::Message { peer, message, .. } => {
+                                                match message {
+
+                                                    request_response::Message::Request { request, channel, .. } => {
+                                                        println!("Request from {} {:?}", peer, request);
+                                                    }
+
+                                                    request_response::Message::Response { response, .. } => {
+                                                        println!("Response: {:?}", response);
+                                                    }
+                                                }
                                             }
 
-                                            request_response::Message::Response { response, .. } => {
-                                                println!("Response: {:?}", response);
-                                            }
+                                            _ => {}
                                         }
-                                    }
+                }
 
-                                    _ => {}
-                                }
-        }
-
-        AetherNetworkBehaviourEvent::Kademlia(event) => {
-            println!("Kad event: {:?}", event);
-        }
-    }
-}
-
-                    SwarmEvent::ConnectionEstablished { peer_id, .. } => {
-                        println!("Connected to {}", peer_id);
-                    }
-
-                    _ => {}
+                AetherNetworkBehaviourEvent::Kademlia(event) => {
+                    println!("Kad event: {:?}", event);
                 }
             }
         }
+
+                            SwarmEvent::ConnectionEstablished { peer_id, .. } => {
+                                println!("Connected to {}", peer_id);
+                            }
+
+                            _ => {}
+                        }
+                    }
+                }
     }
 }
 fn heavy_compute(data: String) -> String {
