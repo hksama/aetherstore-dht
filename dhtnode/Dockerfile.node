@@ -23,5 +23,5 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release
 
 FROM scratch
-COPY --from=builder /app/target/release/reed-solomon-dht /usr/local/bin/reed-solomon-dht
-ENTRYPOINT ["/usr/local/bin/reed-solomon-dht"]
+COPY --from=builder /app/target/release/dhtnode /usr/local/bin/dhtnode
+ENTRYPOINT ["/usr/local/bin/dhtnode"]
