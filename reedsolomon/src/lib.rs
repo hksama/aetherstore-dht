@@ -1,8 +1,10 @@
 use core::ops::{Add, Div, Mul, Sub};
+use pyo3::prelude::*;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct Gf256(u8);
 mod vandermonde;
+mod ffi;
 
 impl Gf256 {
     pub const ZERO: Gf256 = Gf256(0);
@@ -158,9 +160,17 @@ mod gf256_tests {
     }
 
     #[test]
+fn test_known_values() {
+    let a = Gf256::new(0x57) * Gf256::new(0x83); 
+    println!("{}",a.get());
+    assert_eq!(a, Gf256::new(0xC1));
+}
+
+    #[test]
     fn test_tables_correctness() {
         let (exp, log) = Gf256::TABLES;
 
+        
         // Check generator cycle
         let mut seen = [false; 256];
 
@@ -176,4 +186,11 @@ mod gf256_tests {
             assert!(seen[i], "Value {} missing from exp table", i);
         }
     }
+}
+
+/// PyO3 module binding for Python extension
+#[pymodule]
+fn reedsolomon(_py: Python, m: &PyModule) -> PyResult<()> {
+    ffi::create_module(_py, m)?;
+    Ok(())
 }
