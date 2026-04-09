@@ -1,4 +1,4 @@
-use libp2p::kad::{self, Behaviour as Kademlia, Event as KademliaEvent, store::MemoryStore};
+/*use libp2p::kad::{self, Behaviour as Kademlia, Event as KademliaEvent, store::MemoryStore};
 use libp2p::request_response;
 use libp2p::swarm::NetworkBehaviour;
 use libp2p::{Multiaddr, PeerId, SwarmBuilder, futures::StreamExt, swarm::SwarmEvent};
@@ -145,4 +145,15 @@ fn heavy_compute(data: String) -> String {
     // placeholder for reed solomon
     println!("Heavy computation will happen here!");
     format!("processed {}", data)
+}
+*/
+
+
+
+
+// --------------------- Above code is a complete libp2p with kademlia and quic implementation, so delete once below code functional ---------------------
+
+
+fn main() {
+    println!("Hello, DHT Node!");
 }
