@@ -1,7 +1,7 @@
 [workspace]
 members = ["bootstrapnode",
     "dhtnode"       
-, "reedsolomon"]
+, "prototypes", "reedsolomon"]
 
 resolver = "2"
 
