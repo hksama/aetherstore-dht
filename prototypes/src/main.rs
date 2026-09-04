@@ -1,11 +1,10 @@
+mod tls;
+
 use quinn::crypto::rustls::{QuicClientConfig, QuicServerConfig};
 use quinn::{Connection, EndpointConfig, TokioRuntime};
-use rcgen::generate_simple_self_signed;
 use ring::hkdf;
-use rustls::server;
 use rustls::{
     ClientConfig as RustlsClientConfig, RootCertStore, ServerConfig as RustlsServerConfig,
-    pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer},
 };
 use std::net::UdpSocket;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -18,45 +17,35 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .install_default()
         .unwrap();
     let port = std::env::args().nth(1).unwrap_or("8001".into());
-    let cert = generate_simple_self_signed(vec!["localhost".into()]).unwrap();
-    let cert_der = cert.cert.der().clone();
-    let key_der = cert.signing_key.serialize_der();
-    let cert_chain = vec![CertificateDer::from(cert_der)];
-    println!("{:#?}", cert_chain);
-    let private_key = PrivateKeyDer::Pkcs8(PrivatePkcs8KeyDer::from(key_der));
-    println!("{:#?}", private_key);
+    let tls = tls::load_or_create_tls_material()?;
+
     let rustls_config = RustlsServerConfig::builder()
         .with_no_client_auth()
-        .
-        // .with_single_cert(cert_chain, private_key)
-        // .unwrap();
+        .with_single_cert(tls.cert_chain, tls.private_key)?;
 
     // Token Key Setup
     let master_key = hkdf::Salt::new(hkdf::HKDF_SHA256, b"p10dpIwlclaocl39L%7&2#? d(1ps%b")
-        .extract(b"quinn token key");
+        .extract(b"Aetherstore Setup Secret spAzH9MNoS0pgmh28Vyz5WG3J2SRqEagIugHF8cXb7Mp1JUrNy");
     let token_key = Arc::new(master_key);
     println!("TokenKey setup complete");
 
     // Client Config
     let mut roots = RootCertStore::empty();
-    roots.add(cert.cert.der().clone())?;
+    roots.add(tls.trust_anchor)?;
     let client_crypto = RustlsClientConfig::builder()
         .with_root_certificates(roots)
         .with_no_client_auth();
-    // println!("{:#?}", client_crypto);
     let quic_client_config = QuicClientConfig::try_from(client_crypto)?;
     let client_config = quinn::ClientConfig::new(Arc::new(quic_client_config));
-    // println!("{:#?}", client_config);
     println!("ClientConfig complete");
 
     // Server Config
     let quic_crypto = QuicServerConfig::try_from(rustls_config).unwrap();
     let server_config = quinn::ServerConfig::new(Arc::new(quic_crypto), token_key);
-    // println!("{:#?}", server_config);
 
     //Socket Setup
     let endpoint_config = EndpointConfig::default();
-    let socket = UdpSocket::bind("127.0.0.1:".to_owned() + port.as_str())?;
+    let socket = UdpSocket::bind(format!("0.0.0.0:{port}"))?;
     let mut endpoint = quinn::Endpoint::new(
         endpoint_config,
         Some(server_config),

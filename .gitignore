@@ -1,3 +1,13 @@
 book/
 .cursor/
 target/
+.venv/
+.python/__pycache__/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.pytest_cache/
+*.md
+prototypes/certs/*.pem
