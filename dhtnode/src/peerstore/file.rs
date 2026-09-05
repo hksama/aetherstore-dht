@@ -1,15 +1,16 @@
 use libp2p::{Multiaddr, PeerId};
-
-pub struct PeerEntry {
-    peer_id: PeerId,
-    port: u16,
-}
-
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read};
 
-fn read_peer_file(path: &str) -> Result<Vec<PeerEntry>, Box<dyn Error>> {
+#[derive(Debug, Clone)]
+pub struct PeerEntry {
+    pub peer_id: PeerId,
+    pub port: u16,
+    pub addr: Multiaddr,
+}
+
+pub fn load_peers(path: &str) -> Result<Vec<PeerEntry>, Box<dyn Error>> {
     let file = File::open(path)?;
     let mut reader = BufReader::new(file);
 
@@ -51,7 +52,7 @@ fn read_peer_file(path: &str) -> Result<Vec<PeerEntry>, Box<dyn Error>> {
 
         let addr: Multiaddr = String::from_utf8(addr_buf)?.parse()?;
 
-        peers.push(PeerEntry { peer_id, port });
+        peers.push(PeerEntry { peer_id, port, addr });
     }
 
     Ok(peers)
