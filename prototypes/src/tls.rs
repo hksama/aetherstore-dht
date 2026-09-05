@@ -12,6 +12,8 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use crate::transport::TransportSettings;
+
 pub struct TlsMaterial {
     pub cert_chain: Vec<CertificateDer<'static>>,
     pub private_key: PrivateKeyDer<'static>,
@@ -48,12 +50,15 @@ pub fn setup_quinn_crypto() -> Result<QuinnCrypto, Box<dyn Error>> {
         .with_root_certificates(roots)
         .with_no_client_auth();
     let quic_client_config = QuicClientConfig::try_from(client_crypto)?;
-    let client_config = quinn::ClientConfig::new(Arc::new(quic_client_config));
+    let transport = TransportSettings::default().build()?;
+    let mut client_config = quinn::ClientConfig::new(Arc::new(quic_client_config));
+    client_config.transport_config(transport.clone());
     println!("ClientConfig complete");
 
     // Server Config
     let quic_crypto = QuicServerConfig::try_from(rustls_config).unwrap();
-    let server_config = quinn::ServerConfig::new(Arc::new(quic_crypto), token_key);
+    let mut server_config = quinn::ServerConfig::new(Arc::new(quic_crypto), token_key);
+    server_config.transport_config(transport);
 
     Ok(QuinnCrypto {
         client_config,
