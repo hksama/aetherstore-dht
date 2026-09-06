@@ -1,8 +1,10 @@
 use quinn::{Connection, RecvStream, SendStream};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use std::path::Path;
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 
 pub(crate) const DEFAULT_MESSAGE: &str = "hello";
 pub(crate) const MAX_MESSAGE_SIZE: usize = 64 * 1024;
+const CHUNK_SIZE: usize = 256 * 1024;
 
 pub(crate) struct BidiStream {
     send: SendStream,
@@ -95,5 +97,33 @@ pub async fn open_bidirectional_stream(
     }
 
     stream.finish().await?;
+    Ok(())
+}
+
+pub async fn send_file(
+    connection: Connection,
+    path: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (mut send, _recv) = connection.open_bi().await?;
+    let mut file = tokio::fs::File::open(path).await?;
+    let mut buffer = vec![0u8; CHUNK_SIZE];
+    let mut total = 0u64;
+
+    loop {
+        let n = file.read(&mut buffer).await?;
+        if n == 0 {
+            break;
+        }
+
+        let mut offset = 0;
+        while offset < n {
+            offset += send.write(&buffer[offset..n]).await?;
+        }
+        total += n as u64;
+    }
+
+    send.finish()?;
+    let _ = send.stopped().await;
+    println!("Sent {total} bytes from {}", path.display());
     Ok(())
 }

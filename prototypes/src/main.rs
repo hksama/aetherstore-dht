@@ -4,10 +4,11 @@ mod tls;
 mod transport;
 
 use quinn::{EndpointConfig, TokioRuntime};
-use recv::accept_bidirectional_streams;
-use send::open_bidirectional_stream;
+use recv::accept_file_transfer;
+use send::{open_bidirectional_stream, send_file};
 use std::net::UdpSocket;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::path::Path;
 use std::sync::Arc;
 
 #[tokio::main]
@@ -48,7 +49,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             tokio::spawn(async move {
-                accept_bidirectional_streams(connection).await;
+                if let Err(e) = accept_file_transfer(connection).await {
+                    eprintln!("File receive failed: {e}");
+                }
             });
         }
     });
@@ -60,7 +63,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
         let connection = endpoint.connect(remote, "localhost")?.await?;
         println!("Connected to {remote}");
-        open_bidirectional_stream(connection).await?;
+        if let Some(file_path) = std::env::args().nth(3) {
+            send_file(connection, Path::new(&file_path)).await?;
+        } else {
+            open_bidirectional_stream(connection).await?;
+        }
     } else {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(3600)).await;

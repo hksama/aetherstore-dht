@@ -18,7 +18,7 @@ pub struct TransportSettings {
 impl Default for TransportSettings {
     fn default() -> Self {
         Self {
-            max_idle_timeout: Duration::from_secs(3),
+            max_idle_timeout: Duration::from_secs(30),
             keep_alive_interval: Some(Duration::from_secs(5)),
             stream_receive_window: 2 * 1024 * 1024,
             receive_window: 6 * 1024 * 1024,

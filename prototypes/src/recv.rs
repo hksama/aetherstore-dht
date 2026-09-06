@@ -1,5 +1,11 @@
-use crate::send::{BidiStream, MAX_MESSAGE_SIZE};
+use crate::send::MAX_MESSAGE_SIZE;
 use quinn::Connection;
+use std::path::Path;
+use tokio::io::AsyncWriteExt;
+
+const CHUNK_SIZE: usize = 256 * 1024;
+const RECV_DIR: &str = "recv";
+const RECV_FILE: &str = "received.bin";
 
 pub async fn accept_unidirectional_streams(connection: Connection) {
     loop {
@@ -23,6 +29,8 @@ pub async fn accept_unidirectional_streams(connection: Connection) {
 }
 
 pub async fn accept_bidirectional_streams(connection: Connection) {
+    use crate::send::BidiStream;
+
     let (send, recv) = match connection.accept_bi().await {
         Ok(streams) => streams,
         Err(e) => {
@@ -40,4 +48,24 @@ pub async fn accept_bidirectional_streams(connection: Connection) {
             break;
         }
     }
+}
+
+pub async fn accept_file_transfer(
+    connection: Connection,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let (_send, mut recv) = connection.accept_bi().await?;
+    let out_path = Path::new(RECV_DIR).join(RECV_FILE);
+
+    tokio::fs::create_dir_all(RECV_DIR).await?;
+    let mut file = tokio::fs::File::create(&out_path).await?;
+
+    let mut total = 0u64;
+    while let Some(chunk) = recv.read_chunk(CHUNK_SIZE, true).await? {
+        file.write_all(&chunk.bytes).await?;
+        total += chunk.bytes.len() as u64;
+    }
+
+    file.sync_all().await?;
+    println!("Wrote {total} bytes to {}", out_path.display());
+    Ok(())
 }
