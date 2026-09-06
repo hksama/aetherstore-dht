@@ -11,3 +11,5 @@ __pycache__/
 .pytest_cache/
 *.md
 prototypes/certs/*.pem
+send/
+recv/
