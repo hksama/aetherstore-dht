@@ -1,0 +1,41 @@
+# Stage 1: Cargo Chef Planner
+FROM rust:1.90-alpine AS planner
+WORKDIR /app
+RUN apk add --no-cache build-base musl-dev
+RUN cargo install --locked cargo-chef
+COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
+
+# Stage 2: Cache Dependencies & Build
+FROM rust:1.90-alpine AS builder
+WORKDIR /app
+RUN apk add --no-cache build-base musl-dev
+RUN cargo install --locked cargo-chef
+
+COPY --from=planner /app/recipe.json recipe.json
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    --mount=type=cache,target=/app/target \
+    cargo chef cook --release --recipe-path recipe.json --bin prototypes
+
+COPY . .
+RUN --mount=type=cache,target=/usr/local/cargo/registry \
+    cargo build --release --bin prototypes
+
+# Stage 3: Lightweight Alpine Debug Runtime
+FROM alpine:3.20 AS debug
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    net-tools \
+    iproute2 \
+    bind-tools \
+    curl
+
+WORKDIR /app
+RUN mkdir -p /app/certs /app/send /app/recv
+
+COPY --from=builder /app/target/release/prototypes /usr/local/bin/prototypes
+COPY --from=planner /app/send/10M.bin /app/send
+ENV AETHER_CERT_DIR=/app/certs
+
+ENTRYPOINT ["/usr/local/bin/prototypes"]

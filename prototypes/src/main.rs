@@ -60,10 +60,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
 
     if let Some(request_addr) = std::env::args().nth(2) {
-        let remote = SocketAddr::new(
-            IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),
-            request_addr.parse().unwrap(),
-        );
+        let remote: SocketAddr = if let Ok(port) = request_addr.parse::<u16>() {
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)), port)
+        } else {
+            tokio::net::lookup_host(&request_addr)
+                .await?
+                .next()
+                .ok_or_else(|| format!("failed to resolve address: {request_addr}"))?
+        };
         let connection = endpoint.connect(remote, "localhost")?.await?;
         println!("Connected to {remote}");
         if let Some(file_path) = std::env::args().nth(3) {

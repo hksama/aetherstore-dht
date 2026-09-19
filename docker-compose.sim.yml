@@ -1,0 +1,165 @@
+version: "3.8"
+
+networks:
+  sim-net:
+    driver: bridge
+
+services:
+  node1:
+    build:
+      context: .
+      dockerfile: prototypes/Dockerfile.debug
+    image: aether-prototype:debug
+    container_name: node1
+    stdin_open: true
+    tty: true
+    networks:
+      - sim-net
+    ports:
+      - "8001:8001/udp"
+    command: ["8001"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+      - ./recv:/app/recv
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node2:
+    image: aether-prototype:debug
+    container_name: node2
+    depends_on:
+      - node1
+    networks:
+      - sim-net
+    ports:
+      - "8002:8002/udp"
+    command: ["8002", "node1:8001", "/app/send/10M.bin"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+      - ./send:/app/send:ro
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node3:
+    image: aether-prototype:debug
+    container_name: node3
+    networks:
+      - sim-net
+    ports:
+      - "8003:8003/udp"
+    command: ["8003"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node4:
+    image: aether-prototype:debug
+    container_name: node4
+    networks:
+      - sim-net
+    ports:
+      - "8004:8004/udp"
+    command: ["8004"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node5:
+    image: aether-prototype:debug
+    container_name: node5
+    networks:
+      - sim-net
+    ports:
+      - "8005:8005/udp"
+    command: ["8005"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node6:
+    image: aether-prototype:debug
+    container_name: node6
+    networks:
+      - sim-net
+    ports:
+      - "8006:8006/udp"
+    command: ["8006"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node7:
+    image: aether-prototype:debug
+    container_name: node7
+    networks:
+      - sim-net
+    ports:
+      - "8007:8007/udp"
+    command: ["8007"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node8:
+    image: aether-prototype:debug
+    container_name: node8
+    networks:
+      - sim-net
+    ports:
+      - "8008:8008/udp"
+    command: ["8008"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node9:
+    image: aether-prototype:debug
+    container_name: node9
+    networks:
+      - sim-net
+    ports:
+      - "8009:8009/udp"
+    command: ["8009"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+
+  node10:
+    image: aether-prototype:debug
+    container_name: node10
+    networks:
+      - sim-net
+    ports:
+      - "8010:8010/udp"
+    command: ["8010"]
+    volumes:
+      - ./prototypes/certs:/app/certs
+    deploy:
+      resources:
+        limits:
+          memory: 64M
